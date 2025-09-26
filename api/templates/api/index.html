@@ -1,0 +1,84 @@
+<!doctype html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Medical Report Simplifier</title>
+  <style>
+    body { font-family: system-ui, -apple-system, Segoe UI, Roboto, sans-serif; margin: 24px; color: #111; }
+    .card { max-width: 880px; margin: 0 auto; border: 1px solid #e5e7eb; border-radius: 12px; padding: 20px; box-shadow: 0 1px 2px rgba(0,0,0,.06); }
+    h1 { font-size: 22px; margin: 0 0 16px; }
+    label { font-weight: 600; display: block; margin: 16px 0 8px; }
+    textarea { width: 100%; min-height: 120px; padding: 10px; font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; border: 1px solid #d1d5db; border-radius: 8px; }
+    input[type=file] { display: block; margin: 8px 0 0; }
+    .row { display: flex; gap: 12px; align-items: center; }
+    .btn { background: #111827; color: #fff; border: 0; padding: 10px 14px; border-radius: 8px; cursor: pointer; }
+    .btn:disabled { opacity: .5; cursor: default; }
+    pre { background: #0b1020; color: #c9d1d9; padding: 12px; border-radius: 8px; overflow: auto; }
+    .muted { color: #6b7280; font-size: 12px; }
+  </style>
+</head>
+<body>
+  <div class="card">
+    <h1>Medical Report Simplifier</h1>
+    <p class="muted">Paste text or upload an image of a report. The app extracts tests, normalizes them, and returns a simple summary.</p>
+
+    <label for="text">Report Text</label>
+    <textarea id="text" placeholder="e.g. CBC: Hemglobin 10.2 g/dL (Low) WBC 11200 /uL (Hgh)"></textarea>
+
+    <label for="image">Or Upload Image</label>
+    <input id="image" type="file" accept="image/*">
+
+    <div class="row" style="margin-top:16px;">
+      <button id="btnProcess" class="btn">Simplify</button>
+      <span id="status" class="muted"></span>
+    </div>
+
+    <label style="margin-top:20px;">Result</label>
+    <pre id="out">{}</pre>
+  </div>
+
+  <script>
+    const $ = (id) => document.getElementById(id);
+    const out = $('out');
+    const statusEl = $('status');
+
+    async function postProcess() {
+      statusEl.textContent = 'Processing…';
+      out.textContent = '{}';
+      $('btnProcess').disabled = true;
+
+      const text = $('text').value.trim();
+      const file = $('image').files[0];
+      try {
+        let resp;
+        if (file) {
+          const form = new FormData();
+          form.append('image', file);
+          // Opt-in AI extraction merge via query param
+          resp = await fetch('/api/process?use_ai=true', { method: 'POST', body: form });
+        } else {
+          resp = await fetch('/api/process', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ text, use_ai: true })
+          });
+        }
+        const data = await resp.json();
+        out.textContent = JSON.stringify(data, null, 2);
+        statusEl.textContent = resp.ok ? 'Done' : 'Error';
+      } catch (e) {
+        statusEl.textContent = 'Network error';
+        out.textContent = JSON.stringify({ error: String(e) }, null, 2);
+      } finally {
+        $('btnProcess').disabled = false;
+      }
+    }
+
+    $('btnProcess').addEventListener('click', postProcess);
+  </script>
+  
+</body>
+</html>
+
+
