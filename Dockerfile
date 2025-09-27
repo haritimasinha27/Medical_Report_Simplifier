@@ -19,7 +19,10 @@ RUN pip install -r requirements.txt
 COPY . .
 
 # Expose port (Render uses 10000 by default, override if needed)
-EXPOSE 10000
+
 
 # Start the Django app using Gunicorn
-CMD ["gunicorn", "medical_simplifier.wsgi:application", "--bind", "0.0.0.0:10000", "--workers", "3"]
+# CMD ["gunicorn", "medical_simplifier.wsgi:application", "--bind", "0.0.0.0:10000", "--workers", "3"]
+CMD ["gunicorn", "medical_simplifier.wsgi:application", "--bind", "0.0.0.0:$PORT", "--workers", "3"]
+
+
