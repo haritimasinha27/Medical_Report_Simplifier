@@ -23,6 +23,8 @@ COPY . .
 
 # Start the Django app using Gunicorn
 # CMD ["gunicorn", "medical_simplifier.wsgi:application", "--bind", "0.0.0.0:10000", "--workers", "3"]
-CMD ["gunicorn", "medical_simplifier.wsgi:application", "--bind", "0.0.0.0:$PORT", "--workers", "3"]
+# Start Django with Gunicorn — shell form allows $PORT expansion
+CMD gunicorn medical_simplifier.wsgi:application --bind 0.0.0.0:$PORT --workers 3
+
 
 
