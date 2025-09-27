@@ -20,7 +20,7 @@ def extract_tests_ai(text: str) -> Tuple[List[str], float]:
         if not _has_groq_key():
             return [], 0.0
 
-        # Construct prompt
+        
         prompt = (
             "You will be given raw medical report text. Extract only lab tests present in the text. "
             "Return strict JSON with key tests_raw as an array of human-readable strings matching the text, "
@@ -29,21 +29,21 @@ def extract_tests_ai(text: str) -> Tuple[List[str], float]:
             "JSON schema: {\"tests_raw\":[\"...\"],\"confidence\":0.0}. Return ONLY JSON."
         )
 
-        # For Groq, we use its chat completion interface
+       
         response = groq_client.chat.completions.create(
             messages=[
                 {"role": "system", "content": prompt},
                 {"role": "user", "content": text}
             ],
-            model="llama-3.3-70b-versatile"  # or whichever Groq model you prefer
+            model="llama-3.3-70b-versatile"  
         )
 
-        # The response structure depends on the SDK. For example:
+        #
         resp_text = response.choices[0].message.content
 
-        # Clean possible code fences
+        
         if resp_text.startswith("```"):
-            # remove triple backticks and optional "json"
+           
             resp_text = re.sub(r"^```(?:json)?\s*", "", resp_text)
             resp_text = re.sub(r"```$", "", resp_text)
 
@@ -74,7 +74,7 @@ def summarize_with_ai(tests: List[Dict]) -> Dict:
         if not _has_groq_key():
             return {"_used": False, "error": "missing_api_key"}
 
-        # Build compact representation
+      
         compact = []
         for t in tests:
             name = t.get("name")
