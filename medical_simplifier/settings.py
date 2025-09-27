@@ -12,7 +12,7 @@ SECRET_KEY = 'django-insecure-^#f=_h(h8y3&l9+$8)e(h)0yf^(=z8dxexgf=oqvz^#ar=9_9f
 DEBUG = False
 
 # ALLOWED_HOSTS = ['*']/
-ALLOWED_HOSTS = ["haritima_medical_report_simplifier_app.onrender.com"]
+ALLOWED_HOSTS = ["haritima_medical_report_simplifier_app2.onrender.com"]
 
 
 # Application definition
