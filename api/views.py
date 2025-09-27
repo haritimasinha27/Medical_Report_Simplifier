@@ -127,57 +127,6 @@ def _extract_tests_raw(text: str) -> Tuple[List[str], float]:
     return candidates, confidence
 
 
-@csrf_exempt
-def extract(request: HttpRequest):
-    try:
-        if request.method != "POST":
-            return JsonResponse({"error": "POST required"}, status=405)
-
-        # 1) Multipart with file upload: key 'image'
-        if getattr(request, 'FILES', None) and request.FILES.get('image'):
-            uploaded = request.FILES['image']
-            try:
-                # Lazy import so the app works without OCR deps
-                from PIL import Image
-                import pytesseract
-                image = Image.open(uploaded)
-                ocr_text = pytesseract.image_to_string(image)
-                tests_raw, confidence = _extract_tests_raw(ocr_text)
-                return JsonResponse({
-                    "tests_raw": tests_raw,
-                    "confidence": round(confidence, 2),
-                    "source": "image_ocr"
-                })
-            except Exception as e:
-                return JsonResponse({"error": "ocr_failed", "detail": str(e)}, status=400)
-
-        # 2) JSON body with text or image_text strings
-        payload = getattr(request, "body", b"") or b""
-        try:
-            import json
-            data = json.loads(payload or b"{}")
-        except Exception:
-            data = {}
-
-        text = (data.get("text") or "").strip()
-        image_text = (data.get("image_text") or "").strip()
-        # Always enable AI extraction merge (still guarded/validated against source text)
-        use_ai = True
-        source = text or image_text
-
-        tests_raw, confidence = _extract_tests_raw(source)
-        if use_ai:
-            ai_raw, ai_conf = extract_tests_ai(source)
-            if ai_raw:
-                # Merge and dedupe
-                merged = list(dict.fromkeys([*tests_raw, *ai_raw]))
-                tests_raw = merged
-                confidence = max(confidence, ai_conf)
-        return JsonResponse({"tests_raw": tests_raw, "confidence": round(confidence, 2)})
-    except Exception as e:
-        return JsonResponse({"error": "server_error", "detail": str(e)}, status=500)
-
-
 def _normalize_tests(tests_raw: List[str]) -> Tuple[List[Dict,], float]:
     normalized: List[Dict] = []
     for item in tests_raw:
@@ -323,24 +272,6 @@ def _normalize_tests(tests_raw: List[str]) -> Tuple[List[Dict,], float]:
     confidence = 0.84 if normalized else 0.0
     return normalized, confidence
 
-
-@csrf_exempt
-def normalize(request: HttpRequest):
-    if request.method != "POST":
-        return JsonResponse({"error": "POST required"}, status=405)
-    try:
-        import json
-        data = json.loads(request.body or b"{}")
-    except Exception:
-        data = {}
-    tests_raw = data.get("tests_raw") or []
-    if not isinstance(tests_raw, list):
-        return JsonResponse({"error": "tests_raw must be a list"}, status=400)
-
-    tests, conf = _normalize_tests(tests_raw)
-    return JsonResponse({"tests": tests, "normalization_confidence": round(conf, 2)})
-
-
 def _summarize_tests(tests: List[Dict]) -> Dict:
     highlights = []
     for t in tests:
@@ -371,17 +302,17 @@ def process(request: HttpRequest):
         if request.method != "POST":
             return JsonResponse({"error": "POST required"}, status=405)
 
-        print("enetr process")    
-
-        # Allow multipart image uploads too
         if getattr(request, 'FILES', None) and request.FILES.get('image'):
             uploaded = request.FILES['image']
             try:
                 from PIL import Image
                 import pytesseract
-                pytesseract.pytesseract.tesseract_cmd = r"C:\Program Files\Tesseract-OCR\tesseract.exe"
-                print("tesseract_cmd", pytesseract.pytesseract.tesseract_cmd)
-                print("entered here")
+                import platform
+
+                if platform.system() == "Windows":
+                    pytesseract.pytesseract.tesseract_cmd = r"C:\Program Files\Tesseract-OCR\tesseract.exe"
+                else:
+                    pytesseract.pytesseract.tesseract_cmd = "/usr/bin/tesseract"
                 image = Image.open(uploaded)
                 ocr_text = pytesseract.image_to_string(image)
                 print("ocr_text", ocr_text)
